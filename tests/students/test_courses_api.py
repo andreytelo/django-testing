@@ -3,7 +3,7 @@ import pytest
 from django.urls import reverse
 from model_bakery import baker
 from rest_framework.test import APIClient
-
+from rest_framework.status import is_success
 
 @pytest.fixture
 def client():
@@ -31,11 +31,11 @@ def test_get_first_course(client, course_factory, student_factory):
     students = student_factory(_quantity=5)
     course = course_factory(students=students)
 
-    response = client.get('/courses/')
+    response = client.get(reverse('courses-detail', args=[course.id]))
 
-    assert response.status_code == 200
-    assert response.json()[0]['id'] == course.id
-    assert response.json()[0]['name'] == course.name
+    assert is_success(response.status_code)
+    assert response.json()['id'] == course.id
+    assert response.json()['name'] == course.name
 
 
 @pytest.mark.django_db
@@ -45,7 +45,7 @@ def test_get_list_courses(client, student_factory, course_factory):
 
     response = client.get('/courses/')
 
-    assert response.status_code == 200
+    assert is_success(response.status_code)
     assert len(response.json()) == len(courses)
 
 
@@ -57,7 +57,7 @@ def test_filter_course_id(client, student_factory, course_factory):
 
     response = client.get('/courses/', {'id': id_course})
 
-    assert response.status_code == 200
+    assert is_success(response.status_code)
     assert response.json()[0]
     assert response.json()[0]['id'] == id_course
 
@@ -70,7 +70,7 @@ def test_filter_course_name(client, student_factory, course_factory):
 
     response = client.get('/courses/', {'name': course.name})
 
-    assert response.status_code == 200
+    assert is_success(response.status_code)
     assert response.json()[0]['id'] == course.id
     assert response.json()[0]['name'] == course.name
 
@@ -82,8 +82,7 @@ def test_create_course(client):
     response = client.post('/courses/', course)
     get_response = client.get('/courses/', {'name': course['name']})
 
-    assert response.status_code == 201
-    assert get_response.status_code == 200
+    assert is_success(response.status_code)
     assert get_response.json()[0]
     assert get_response.json()[0]['name'] == course['name']
 
@@ -97,8 +96,7 @@ def test_course_update(client, course_factory, student_factory):
     response = client.patch(reverse('courses-detail', args=[course_old.id]), {'name': course_new.name})
     get_response = client.get(reverse('courses-detail', args=[course_old.id]), {'id': course_old.id})
 
-    assert response.status_code == 200
-    assert get_response.status_code == 200
+    assert is_success(response.status_code)
     assert response.json()['id'] == course_old.id and response.json()['name'] == course_new.name
     assert get_response.json()['id'] == course_old.id and get_response.json()['name'] == course_new.name
 
@@ -114,5 +112,5 @@ def test_delete_course(client, course_factory, student_factory):
 
     ids = [course['id'] for course in response_get.json()]
 
-    assert response.status_code == 204
+    assert is_success(response.status_code)
     assert random_course.id not in ids
